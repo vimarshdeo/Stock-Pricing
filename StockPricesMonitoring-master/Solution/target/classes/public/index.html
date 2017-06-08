@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="ISO-8859-1">
+    <title>Stock Price Monitoring</title>
+<style>
+    table, th, td {
+        border: 1px solid black;
+    }
+    table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+    tr {
+        height:25px;
+        vertical-align: bottom;
+    }
+    th {
+        text-align: left;
+        height: 50px;
+    }
+    h1 {
+        color: blue;
+        font-family: verdana;
+        font-size: 300%;
+    }
+    p  {
+        color: red;
+        font-family: courier;
+        font-size: 160%;
+    }
+</style>
+</head>
+
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script><script
+        src="https://code.jquery.com/jquery-3.1.1.min.js"
+        integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
+        crossorigin="anonymous"></script>
+<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script src="//d3js.org/d3.v3.min.js"></script>
+<script type="text/javascript">
+
+function drawBasic(data1) {
+//console.log(data1);
+    $("#graph_details").show();
+    var jsonObj = data1;
+    var dataArray = [];
+    //dataArray.push( ['TimeStamp' , 'Rate'] )
+    var companyName = jsonObj[0]['name'];
+    for (var i in jsonObj) {
+      var price = jsonObj[i]['price'];
+      var timestamp = jsonObj[i]['timeStamp'];
+       dataArray.push([timestamp,Number(price)]);
+      }
+    for( var i in dataArray) {
+    	console.log(dataArray[i]);
+    }
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Time');
+    data.addColumn( 'number', companyName);
+    data.addRows(dataArray)
+      var options = {
+        hAxis: {
+          title: 'Time'
+        },
+        vAxis: {
+          title: 'Price'
+        }
+      };
+      var chart = new google.visualization.LineChart(document.getElementById('graph_details'));
+      chart.draw(data, options);
+    }
+
+
+    function start(){
+        $("#table_details").hide();
+        $("#graph_details").hide();
+        var methodURL = "addComp/sym_name";
+        var temp = $("#sym_name").val();
+        if(temp.length == 0){
+            window.alert("Please pass a value to ADD");
+            return;
+        }
+        $.ajax({
+           type : "POST",
+           contentType : "application/json",
+           url : methodURL,
+           data : JSON.stringify(temp),
+           dataType : 'json',
+           success : function(data1) {
+           console.log(data1);
+            console.log(temp);
+           },
+           error : function(e) {
+           //console.log("Err...");
+           }
+        });
+        window.alert("Added " + $("#sym_name").val());
+        $("#sym_name").val("");
+        $("#table_details").hide();
+        $("#graph_details").hide();
+
+    }
+
+    function getHist(){
+        $("#table_details").hide();
+        //$("#graph_details").hide();
+        d3.select("#graph_details").select("svg").remove();
+        var methodURL = "getAll/sym_name";
+        var temp = $("#sym_name2").val();
+        console.log(temp);
+        if(temp.length == 0){
+            window.alert("Please pass a valid value");
+            return;
+        }
+        $.ajax({
+           type : "GET",
+           contentType : "application/json",
+           url : methodURL,
+           data : "sym_name=" + $("#sym_name2").val(),
+           success : function(data) {
+            console.log(data);
+            var tabdata = JSON.parse(JSON.stringify(data));
+            google.charts.load('current', {packages: ['corechart', 'line']});
+            google.charts.setOnLoadCallback(drawBasic(tabdata));
+            console.log("Success");
+            console.log(data);
+           },
+           error : function(e) {
+           console.log("Err...");
+           console.log(e);
+           }
+        });
+        $("#sym_name2").val("");
+        $("#table_details").hide();
+    }
+
+    function deleteStock(){
+        $("#table_details").hide();
+        $("#graph_details").hide();
+        var methodURL = "remove/sym_name";
+        var temp = $("#sym_name3").val();
+        console.log(temp);
+        if(temp.length == 0){
+            window.alert("Please pass a valid value");
+            return;
+        }
+        $.ajax({
+           type : "GET",
+           contentType : "application/json",
+           url : methodURL,
+           data : "sym_name=" + $("#sym_name3").val(),
+           success : function(data1) {
+            console.log("Del Success.....");
+            window.alert("Deleted ");
+           },
+           error : function(e) {
+           console.log("Del Err...");
+           console.log(e);
+           window.alert("Don't exist " + $("#sym_name3").val());
+           }
+        });
+        $("#sym_name3").val("");
+        $("#table_details").hide();
+        $("#graph_details").hide();
+    }
+
+    function getLatest(){
+        $("#graph_details").hide();
+        var methodURL = "getLatest";
+        $("#topviewedtable").children().remove();
+        $.ajax({
+           type : "GET",
+           contentType : "application/json",
+           url : methodURL,
+           success : function(data) {
+            var tabdata = JSON.parse(JSON.stringify(data));
+            console.log(tabdata);
+            $("#table_details").show();
+            var tableId = document.getElementById("topviewedtable");
+                $(function() {
+                    $.each(tabdata, function(i, item) {
+                        var $tr = $('<tr>').append(
+                            $('<td>').text(i+1),
+                            $('<td>').text(item.name),
+                            $('<td>').text(item.symbol),
+                            $('<td>').text(item.price),
+                            $('<td>').text(item.timeStamp)
+                        ).appendTo(tableId);
+
+                    });
+		        });
+           console.log("GetALL Success....");
+           },
+           error : function(e) {
+           console.log("GetALL Err.....");
+           console.log(e);
+           }
+        });
+    }
+</script>
+
+<body>
+    <div id="myController">
+        <div id="page">
+            <div id="info" align="center">
+                <h1>Stock Price Monitoring System</h1>
+                <p>Using Yahoo Finance API</p>
+            </div>
+
+            <div id="symList" >
+                <a href="http://finance.yahoo.com/lookup?bypass=true" target="_blank" style="color:blue; font:verdana">
+                    Click Me to get symbol details!</a><br><br>
+            </div>
+
+            <div id="addCompany">
+                <h2>Enter the company symbol to add data</h2>
+                <form name="myform" method="POST" action="addComp/sym_name" >
+                    Symbol Name : <input type="text" placeholder="symbol.. FB for facebook" name = "sym_name" id = "sym_name"/><br>
+                    <br><br>
+                    <input type=button value="Add" onKeyDown="if(event.keyCode==13) start();" onclick="start()"/> <br><br>
+                </form>
+            </div>
+
+
+            <div id="getLatestStock">
+                <h2>Click to get the tabular data of latest stocks</h2>
+                <form name="myform4" method="GET" action="getLatest" >
+                    <br>
+                    <input type=button value="Get Latest" onclick="getLatest()"/> <br><br>
+                </form>
+
+            </div>
+
+            <div id="deleteStock">
+                <h2>Enter the company symbol to delete historical data</h2>
+                <form name="myform2" method="POST" action="remove/sym_name" >
+                    Symbol Name : <input type="text" placeholder="symbol.. FB for facebook etc" name = "sym_name3" id="sym_name3"/><br>
+                    <br><br>
+                    <input type=button value="Delete Data" onclick="deleteStock()"/> <br><br>
+                </form>
+
+
+            </div>
+
+
+            <div id="getHistoricalStock">
+                <h2>Enter the company symbol to get historical data</h2>
+                <form name="myform1" method="GET" action="getAll/sym_name" >
+                    Symbol Name : <input type="text" placeholder="symbol.. FB for facebook etc" name = "sym_name2" id="sym_name2"/><br>
+                    <br><br>
+                    <input type=button value="Get Historical" onclick="getHist()"/> <br><br>
+                </form>
+            </div>
+
+        </div>
+        <div class="table" align="center">
+            <div id="table_details" style="display:none">
+                <h3 style="color:red; font-family:verdana">Latest Stock Prices</h3>
+                <table class = "table" id="stockList">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Company Name</th>
+                            <th>Symbol Value</th>
+                            <th>Price</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="topviewedtable">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div id="graph_details" style="display:none">
+              <!-- <h3 style="color:red; font-family:verdana">Historical Price Details</h3>-->
+        </div>
+    </div>
+</body>
+</html>
